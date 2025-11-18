@@ -1,6 +1,10 @@
-// App.tsx
-import { RootNavigator } from './src/app';
+import { NavigationContainer } from '@react-navigation/native';
+import LoginScreen from './src/screens/LoginScreen';
 
 export default function App() {
-  return <RootNavigator />;
+  return (
+    <NavigationContainer>
+      <LoginScreen />
+    </NavigationContainer>
+  );
 }
