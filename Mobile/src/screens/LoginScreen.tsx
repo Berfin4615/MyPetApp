@@ -1,7 +1,7 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useState } from 'react';
 
-const API_BASE_URL = 'http://192.168.1.140:8000/api'; // 👈 kendi IP’ni yaz
+const API_BASE_URL = 'http://192.168.1.140:8000/api'; 
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -30,7 +30,6 @@ export default function LoginScreen({ navigation }) {
       });
 
       if (!response.ok) {
-        // 401 gibi durumlarda burası
         const errorData = await response.json().catch(() => null);
         const msg = errorData?.message || 'Giriş başarısız.';
         Alert.alert('Hata', msg);
@@ -39,13 +38,9 @@ export default function LoginScreen({ navigation }) {
 
       const data = await response.json();
 
-      // data = { user: {...}, token: 'xxxx' }
       console.log('Login success:', data);
 
-      // TODO: Token’ı sakla (AsyncStorage vs.)
-      // await AsyncStorage.setItem('token', data.token);
-
-      navigation.replace('Home'); // sadece başarıda yönlendir
+      navigation.replace('Home'); 
     } catch (error) {
       console.log('Login error:', error);
       Alert.alert('Hata', 'Sunucuya bağlanırken bir problem oluştu.');
@@ -56,6 +51,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Image source={require('../assets/logo.png')} style={styles.logo} />
       <Text style={styles.title}>Giriş Yap</Text>
 
       <TextInput
@@ -80,6 +76,10 @@ export default function LoginScreen({ navigation }) {
           {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
         </Text>
       </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.registerText}>Hesabınız yok mu? Kayıt Ol</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -88,38 +88,47 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffffff',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: '100%',
+    height: '30%',
     alignSelf: 'center',
     marginBottom: 32,
   },
   title: {
     fontSize: 28,
     textAlign: 'center',
+    color: '#400c66',
     marginBottom: 24,
     fontWeight: 'bold',
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#ccc',
-    borderRadius: 8,
+    borderRadius: 15,
     padding: 12,
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#007aff',
+    backgroundColor: '#400c66',
     padding: 14,
-    borderRadius: 8,
+    width: '50%',
+    borderRadius: 15,
     marginTop: 8,
+    alignSelf: 'center',
   },
   buttonText: {
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
+  },
+  registerText: {
+    color: '#400c66',
+    textAlign: 'center',
+    marginTop: 16,
+    textDecorationLine: 'underline',
   },
 });
