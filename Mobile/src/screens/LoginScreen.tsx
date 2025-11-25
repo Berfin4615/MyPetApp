@@ -83,7 +83,7 @@ export default function LoginScreen({ navigation }) {
     </View>
   );
 }
-
+// TODO: Giriş yaparken ekran yukarı kaymıyor neyi yazdığımı göremiyorum.
 
 const styles = StyleSheet.create({
   container: {
