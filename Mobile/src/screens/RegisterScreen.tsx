@@ -51,7 +51,7 @@ export default function RegisterScreen({ navigation }) {
                 }
 
             Alert.alert('Başarılı', 'Kayıt tamamlandı, giriş yapılıyor...');
-            navigation.replace('Home');
+            navigation.replace('Dashboard');
         } catch (err) {
             console.log('Register error:', err);
             Alert.alert('Hata', 'Sunucuya bağlanırken bir sorun oluştu.');
