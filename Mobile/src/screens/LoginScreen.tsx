@@ -40,7 +40,7 @@ export default function LoginScreen({ navigation }) {
 
       console.log('Login success:', data);
 
-      navigation.replace('Home'); 
+      navigation.replace('Dashboard'); 
     } catch (error) {
       console.log('Login error:', error);
       Alert.alert('Hata', 'Sunucuya bağlanırken bir problem oluştu.');
@@ -83,7 +83,7 @@ export default function LoginScreen({ navigation }) {
     </View>
   );
 }
-
+// TODO: Giriş yaparken ekran yukarı kaymıyor neyi yazdığımı göremiyorum.
 
 const styles = StyleSheet.create({
   container: {
