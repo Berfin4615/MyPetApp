@@ -3,6 +3,7 @@ import LoginScreen from '../screens/LoginScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import PetScreen from '../screens/PetScreen';
+import PetCreateScreen from '../screens/PetCreateScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -13,6 +14,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="Pet" component={PetScreen} options={{ headerShown: false }}/>
+      <Stack.Screen name="PetCreate" component={PetCreateScreen} options={{ headerShown: false }}/>
     </Stack.Navigator>
   );
 }

@@ -55,12 +55,18 @@ export default function DashboardScreen({  navigation }) {
         <Image source={require('../assets/paw.png')} style={{ width: 25, height: 25 }} />
       </Text>
 
-    <FlatList
+      <FlatList
         data={pets}
         keyExtractor={(item) => item.id}
         renderItem={renderPet}
         contentContainerStyle={styles.listContent}
       />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('PetCreate')} 
+      >
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -127,5 +133,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9a4fd6',
     fontWeight: '500',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#400c66',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 32,
+    lineHeight: 32,
+    fontWeight: 'bold',
   },
 });
