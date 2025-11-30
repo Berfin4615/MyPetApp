@@ -1,5 +1,6 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'http://192.168.1.140:8000/api'; 
 
@@ -37,10 +38,15 @@ export default function LoginScreen({ navigation }) {
       }
 
       const data = await response.json();
-
       console.log('Login success:', data);
 
-      navigation.replace('Dashboard'); 
+      // 🔑 BURASI ÖNEMLİ: token'ı kaydet
+      const token = data.token; // backend'de ne isimle dönüyorsa ona göre
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+      }
+
+      navigation.replace('Dashboard');
     } catch (error) {
       console.log('Login error:', error);
       Alert.alert('Hata', 'Sunucuya bağlanırken bir problem oluştu.');
