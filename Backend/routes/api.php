@@ -20,9 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', function (Request $request) {
         return $request->user();
     });
-});
 
-Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pets', [PetController::class, 'index']);
     Route::post('/pets', [PetController::class, 'store']);
     Route::get('/pets/{pet}', [PetController::class, 'show']);
