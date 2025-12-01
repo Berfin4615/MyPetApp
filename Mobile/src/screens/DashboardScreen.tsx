@@ -41,7 +41,7 @@ export default function DashboardScreen({  navigation }) {
   );
 
   const renderPet = ({ item }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => navigation.navigate('Pet', { pet: item })}>
+    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => navigation.navigate('Pet', { petId: item.id })}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
       </View>

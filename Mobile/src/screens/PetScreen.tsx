@@ -1,26 +1,226 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  TextInput, 
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function PetDetailScreen({ route }) {
-  const { pet } = route.params; 
-  // pets ekranından: navigation.navigate('PetDetail', { pet: item })
+const API_BASE_URL = 'http://192.168.1.140:8000/api';
+
+export default function PetScreen({ route }) {
+  const { petId } = route.params; 
+  const [pet, setPet] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
+  const [form, setForm] = useState({
+    name: '',
+    species: '',
+    breed: '',
+    birth_date: '',
+    current_weight_kg: '',
+  });
+
+  // Genel state setter
+  const updateForm = (key, value) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  // 1) Sayfa açılınca ilgili pet'i backend'den çek
+  useEffect(() => {
+    const fetchPet = async () => {
+      try {
+        setLoading(true);
+        const token = await AsyncStorage.getItem('token');
+
+        const res = await axios.get(`${API_BASE_URL}/pets/${petId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
+
+        setPet(res.data);
+        setForm({
+          name: res.data.name || '',
+          species: res.data.species || '',
+          breed: res.data.breed || '',
+          birth_date: res.data.birth_date || '',
+          current_weight_kg: res.data.current_weight_kg
+            ? String(res.data.current_weight_kg)
+            : '',
+        });
+      } catch (err) {
+        console.log('Pet detayı hatası:', err.response?.data || err.message);
+        Alert.alert('Hata', 'Pet bilgileri alınırken bir sorun oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPet();
+  }, [petId]);
+
+  // 2) Kaydet butonu → PUT /pets/{id}
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const token = await AsyncStorage.getItem('token');
+
+      const payload = {
+        name: form.name,
+        species: form.species || null,
+        breed: form.breed || null,
+        birth_date: form.birth_date || null,
+        current_weight_kg: form.current_weight_kg
+          ? parseFloat(form.current_weight_kg)
+          : null,
+      };
+
+      const res = await axios.put(`${API_BASE_URL}/pets/${petId}`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      setPet(res.data);       // ekranda da güncellensin
+      setEditMode(false);     // formdan çık
+      Alert.alert('Başarılı', 'Pet bilgileri güncellendi 🐾');
+    } catch (err) {
+      console.log('Pet güncelleme hatası:', err.response?.data || err.message);
+      Alert.alert('Hata', 'Pet güncellenirken bir sorun oluştu.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !pet) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 8 }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{pet.name.charAt(0)}</Text>
+          <Text style={styles.avatarText}>{pet.name?.charAt(0)}</Text>
         </View>
-        <Text style={styles.name}>{pet.name}</Text>
+        {editMode ? (
+          <TextInput
+            style={[styles.name, styles.inputInline]}
+            value={form.name}
+            onChangeText={(text) => updateForm('name', text)}
+          />
+        ) : (
+          <Text style={styles.name}>{pet.name}</Text>
+        )}
+
         <Text style={styles.subText}>
-          {pet.type} • {pet.breed}
+          {(pet.species || 'Tür yok') + ' • ' + (pet.breed || 'Irk yok')}
         </Text>
-        <Text style={styles.subText}>
-          {pet.age} • {pet.weight}
-        </Text>
+        {pet.birth_date && (
+          <Text style={styles.subText}>Doğum tarihi: {pet.birth_date}</Text>
+        )}
+        {pet.current_weight_kg && (
+          <Text style={styles.subText}>Kilo: {pet.current_weight_kg} kg</Text>
+        )}
+
+        {/* Düzenle / Kaydet butonu */}
+        {!editMode ? (
+          <TouchableOpacity
+            style={[styles.editButton, { backgroundColor: '#400c66' }]}
+            onPress={() => setEditMode(true)}
+          >
+            <Text style={styles.editButtonText}>Düzenle</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#999' }]}
+              onPress={() => {
+                // eski pet verisine geri dön
+                setForm({
+                  name: pet.name || '',
+                  species: pet.species || '',
+                  breed: pet.breed || '',
+                  birth_date: pet.birth_date || '',
+                  current_weight_kg: pet.current_weight_kg
+                    ? String(pet.current_weight_kg)
+                    : '',
+                });
+                setEditMode(false);
+              }}
+            >
+              <Text style={styles.editButtonText}>Vazgeç</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#400c66' }]}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Text style={styles.editButtonText}>
+                {saving ? 'Kaydediliyor...' : 'Kaydet'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-      {/* Bugünün Özeti */}
+      {/* Eğer editMode'daysan genel bilgiler için input alanları */}
+      {editMode && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Genel Bilgiler</Text>
+
+          <Text style={styles.label}>Tür</Text>
+          <TextInput
+            style={styles.input}
+            value={form.species}
+            onChangeText={(text) => updateForm('species', text)}
+            placeholder="Köpek, Kedi..."
+          />
+
+          <Text style={styles.label}>Irk</Text>
+          <TextInput
+            style={styles.input}
+            value={form.breed}
+            onChangeText={(text) => updateForm('breed', text)}
+            placeholder="Golden, Scottish Fold..."
+          />
+
+          <Text style={styles.label}>Doğum Tarihi (YYYY-MM-DD)</Text>
+          <TextInput
+            style={styles.input}
+            value={form.birth_date}
+            onChangeText={(text) => updateForm('birth_date', text)}
+            placeholder="2023-05-10"
+          />
+
+          <Text style={styles.label}>Kilo (kg)</Text>
+          <TextInput
+            style={styles.input}
+            value={form.current_weight_kg}
+            onChangeText={(text) => updateForm('current_weight_kg', text)}
+            placeholder="18.5"
+            keyboardType="numeric"
+          />
+        </View>
+      )}
+
+      {/* Bugünün Özeti (şimdilik dummy, sonra tablolardan çekeriz) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Bugünün Özeti</Text>
         <View style={styles.summaryCard}>
@@ -31,26 +231,26 @@ export default function PetDetailScreen({ route }) {
         </View>
       </View>
 
-      {/* Sağlık Kartı */}
+      {/* Sağlık & Aşılar (ileride ayrı tablolardan dolduracağız) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sağlık & Aşılar</Text>
-        <TouchableOpacity style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Aşı Takvimi</Text>
-          <Text style={styles.cardText}>Sıradaki: 12.12.2025 • Karma aşı</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card}>
+          <Text style={styles.cardText}>Buraya pet_vaccinations tablosundan veri gelecek.</Text>
+        </View>
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Veteriner Ziyaretleri</Text>
-          <Text style={styles.cardText}>Son ziyaret: 05.10.2025 • Genel kontrol</Text>
-        </TouchableOpacity>
+          <Text style={styles.cardText}>Buraya vet ziyaretleri için ayrı tablo bağlanır.</Text>
+        </View>
       </View>
 
       {/* Beslenme Kartı */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Beslenme</Text>
-        <TouchableOpacity style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Mama Planı</Text>
-          <Text style={styles.cardText}>Günde 2 öğün • X Marka Kuzu & Pirinç</Text>
-        </TouchableOpacity>
+          <Text style={styles.cardText}>Bu alanı da sonra dinamik yaparız 🐾</Text>
+        </View>
       </View>
 
       {/* Notlar */}
@@ -58,7 +258,7 @@ export default function PetDetailScreen({ route }) {
         <Text style={styles.sectionTitle}>Notlar</Text>
         <View style={styles.noteBox}>
           <Text style={styles.cardText}>
-            Bugün parka gittik, biraz yoruldu ama keyfi yerindeydi. 
+            Notlar için ayrı bir "pet_notes" tablosu açabiliriz.
           </Text>
         </View>
       </View>
@@ -96,9 +296,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2c1438',
   },
+  inputInline: {
+    borderBottomWidth: 1,
+    borderColor: '#e0d4f5',
+    paddingHorizontal: 4,
+  },
   subText: {
     fontSize: 14,
     color: '#7b6b86',
+  },
+  editButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   section: {
     marginBottom: 16,
@@ -134,5 +349,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fdf5ff',
     borderRadius: 12,
     padding: 12,
+  },
+  label: {
+    fontSize: 14,
+    color: '#6b5a77',
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0d4f5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
   },
 });

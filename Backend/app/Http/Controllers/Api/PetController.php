@@ -37,14 +37,11 @@ class PetController extends Controller
 
     public function show(Pet $pet)
     {
-        $this->authorize('view', $pet); // istersen policy ile korursun
         return response()->json($pet);
     }
 
     public function update(Request $request, Pet $pet)
     {
-        $this->authorize('update', $pet);
-
         $data = $request->validate([
             'name'   => 'sometimes|string|max:255',
             'species'=> 'sometimes|nullable|string|max:255',
@@ -64,8 +61,6 @@ class PetController extends Controller
 
     public function destroy(Pet $pet)
     {
-        $this->authorize('delete', $pet);
-
         $pet->delete();
 
         return response()->json(null, 204);
