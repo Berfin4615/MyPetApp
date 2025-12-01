@@ -1,37 +1,45 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
-import { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import { useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-const pets = [
-  {
-    id: '1',
-    name: 'Lucy',
-    type: 'Köpek',
-    breed: 'Mixed',
-    age: '2 yaş',
-    weight: '18 kg',
-    nextVaccine: '12.12.2025',
-  },
-  {
-    id: '2',
-    name: 'Mocha',
-    type: 'Kedi',
-    breed: 'Scottish Fold',
-    age: '3 yaş',
-    weight: '4.5 kg',
-    nextVaccine: '05.01.2026',
-  },
-  {
-    id: '3',
-    name: 'Bambi',
-    type: 'Köpek',
-    breed: 'Mixed',
-    age: '1 yaş',
-    weight: '10 kg',
-    nextVaccine: '20.11.2025',
-  },
-];
+const API_BASE_URL = 'http://192.168.1.140:8000/api';
 
 export default function DashboardScreen({  navigation }) {
+  const [pets, setPets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchPets = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = await AsyncStorage.getItem('token');
+
+      const response = await axios.get(`${API_BASE_URL}/pets`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      setPets(response.data);
+    } catch (err) {
+      console.log('Pets fetch error:', err.response?.data || err.message);
+      setError('Evcil hayvanlar yüklenirken bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPets();
+    }, [fetchPets])
+  );
+
   const renderPet = ({ item }) => (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => navigation.navigate('Pet', { pet: item })}>
       <View style={styles.avatar}>
@@ -46,6 +54,14 @@ export default function DashboardScreen({  navigation }) {
       </View>
     </TouchableOpacity>
   );
+  if (loading && pets.length === 0) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 8 }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       
@@ -155,5 +171,10 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 32,
     fontWeight: 'bold',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
