@@ -26,4 +26,9 @@ class Pet extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function notes()
+    {
+        return $this->hasMany(\App\Models\PetNote::class);
+    }
 }
