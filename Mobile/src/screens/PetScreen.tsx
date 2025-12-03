@@ -20,6 +20,9 @@ export default function PetScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [notes, setNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [newNote, setNewNote] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -65,8 +68,28 @@ export default function PetScreen({ route }) {
         setLoading(false);
       }
     };
+    const fetchNotes = async () => {
+      try {
+        setNotesLoading(true);
+        const token = await AsyncStorage.getItem('token');
+
+        const res = await axios.get(`${API_BASE_URL}/pets/${petId}/notes`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
+
+        setNotes(res.data);
+      } catch (err) {
+        console.log('Pet notları hatası:', err.response?.data || err.message);
+      } finally {
+        setNotesLoading(false);
+      }
+    };
 
     fetchPet();
+    fetchNotes();
   }, [petId]);
 
   // 2) Kaydet butonu → PUT /pets/{id}
@@ -100,6 +123,35 @@ export default function PetScreen({ route }) {
       Alert.alert('Hata', 'Pet güncellenirken bir sorun oluştu.');
     } finally {
       setSaving(false);
+    }
+  };
+  
+  const handleAddNote = async () => {
+    if (!newNote.trim()) {
+      Alert.alert('Uyarı', 'Lütfen bir not yaz 💜');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+
+      const res = await axios.post(
+        `${API_BASE_URL}/pets/${petId}/notes`,
+        { note: newNote },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      // Yeni notu listeye en üste ekle
+      setNotes((prev) => [res.data, ...prev]);
+      setNewNote('');
+    } catch (err) {
+      console.log('Not ekleme hatası:', err.response?.data || err.message);
+      Alert.alert('Hata', 'Not eklenirken bir sorun oluştu.');
     }
   };
 
@@ -256,12 +308,41 @@ export default function PetScreen({ route }) {
       {/* Notlar */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notlar</Text>
-        <View style={styles.noteBox}>
-          <Text style={styles.cardText}>
-            Notlar için ayrı bir "pet_notes" tablosu açabiliriz.
+
+        {/* Yeni not ekleme alanı */}
+        <TextInput
+          style={styles.input}
+          value={newNote}
+          onChangeText={setNewNote}
+          placeholder="Bugün neler yaptınız? 🐾"
+          multiline
+        />
+        <TouchableOpacity
+          style={[styles.editButton, { alignSelf: 'flex-end', backgroundColor: '#400c66', marginTop: 8 }]}
+          onPress={handleAddNote}
+        >
+          <Text style={styles.editButtonText}>Not Ekle</Text>
+        </TouchableOpacity>
+
+        {/* Not listesi */}
+        {notesLoading ? (
+          <Text style={{ marginTop: 8 }}>Notlar yükleniyor...</Text>
+        ) : notes.length === 0 ? (
+          <Text style={{ marginTop: 8, color: '#7b6b86' }}>
+            Henüz hiç not eklememişsin.
           </Text>
-        </View>
+        ) : (
+          notes.map((n) => (
+            <View key={n.id} style={[styles.noteBox, { marginTop: 8 }]}>
+              <Text style={[styles.cardText, { marginBottom: 4 }]}>
+                {new Date(n.created_at).toLocaleDateString('tr-TR')} 
+              </Text>
+              <Text style={styles.cardText}>{n.note}</Text>
+            </View>
+          ))
+        )}
       </View>
+
     </ScrollView>
   );
 }
