@@ -23,6 +23,15 @@ export default function PetScreen({ route }) {
   const [notes, setNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [newNote, setNewNote] = useState('');
+  const [vaccines, setVaccines] = useState([]);
+  const [vaccinesLoading, setVaccinesLoading] = useState(false);
+
+  const [newVaccine, setNewVaccine] = useState({
+    name: '',
+    next_due_at: '', // YYYY-MM-DD
+    given_at: '',    // opsiyonel
+    notes: '',
+  });
 
   const [form, setForm] = useState({
     name: '',
@@ -35,6 +44,10 @@ export default function PetScreen({ route }) {
   // Genel state setter
   const updateForm = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateVaccineForm = (key, value) => {
+    setNewVaccine(prev => ({ ...prev, [key]: value }));
   };
 
   // 1) Sayfa açılınca ilgili pet'i backend'den çek
@@ -88,8 +101,32 @@ export default function PetScreen({ route }) {
       }
     };
 
+    const fetchVaccines = async () => {
+      try {
+        setVaccinesLoading(true);
+        const token = await AsyncStorage.getItem('token');
+
+        const res = await axios.get(
+          `${API_BASE_URL}/pets/${petId}/vaccinations`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+            },
+          }
+        );
+
+        setVaccines(res.data);
+      } catch (err) {
+        console.log('Aşı listesi hatası:', err.response?.data || err.message);
+      } finally {
+        setVaccinesLoading(false);
+      }
+    };
+
     fetchPet();
     fetchNotes();
+    fetchVaccines();
   }, [petId]);
 
   // 2) Kaydet butonu → PUT /pets/{id}
@@ -155,7 +192,52 @@ export default function PetScreen({ route }) {
     }
   };
 
-  if (loading || !pet) {
+  const handleAddVaccine = async () => {
+    if (!newVaccine.name.trim()) {
+      Alert.alert('Uyarı', 'Lütfen aşının adını yaz 🩺');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+
+      const payload = {
+        name: newVaccine.name,
+        given_at: newVaccine.given_at || null,
+        next_due_at: newVaccine.next_due_at || null,
+        notes: newVaccine.notes || null,
+      };
+
+      const res = await axios.post(
+        `${API_BASE_URL}/pets/${petId}/vaccinations`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      // Yeni aşıyı listenin başına ekle
+      setVaccines(prev => [res.data, ...prev]);
+
+      // Formu temizle
+      setNewVaccine({
+        name: '',
+        next_due_at: '',
+        given_at: '',
+        notes: '',
+      });
+
+      Alert.alert('Başarılı', 'Aşı kaydı eklendi 💉');
+    } catch (err) {
+      console.log('Aşı ekleme hatası:', err.response?.data || err.message);
+      Alert.alert('Hata', 'Aşı eklenirken bir sorun oluştu.');
+    }
+  };
+
+    if (loading || !pet) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" />
@@ -283,18 +365,96 @@ export default function PetScreen({ route }) {
         </View>
       </View>
 
-      {/* Sağlık & Aşılar (ileride ayrı tablolardan dolduracağız) */}
+      {/* Sağlık & Aşılar */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sağlık & Aşılar</Text>
+
+        {/* Yeni Aşı Ekle Formu */}
+        <View style={[styles.card, { marginBottom: 12 }]}>
+          <Text style={styles.cardTitle}>Yeni Aşı Kaydı</Text>
+
+          <Text style={styles.label}>Aşı Adı *</Text>
+          <TextInput
+            style={styles.input}
+            value={newVaccine.name}
+            onChangeText={text => updateVaccineForm('name', text)}
+            placeholder="Karma, Kuduz..."
+          />
+
+          <Text style={styles.label}>Yapıldığı Tarih (opsiyonel)</Text>
+          <TextInput
+            style={styles.input}
+            value={newVaccine.given_at}
+            onChangeText={text => updateVaccineForm('given_at', text)}
+            placeholder="2025-12-04"
+          />
+
+          <Text style={styles.label}>Sıradaki Tarih (opsiyonel)</Text>
+          <TextInput
+            style={styles.input}
+            value={newVaccine.next_due_at}
+            onChangeText={text => updateVaccineForm('next_due_at', text)}
+            placeholder="2026-12-04"
+          />
+
+          <Text style={styles.label}>Notlar</Text>
+          <TextInput
+            style={[styles.input, { height: 60 }]}
+            value={newVaccine.notes}
+            onChangeText={text => updateVaccineForm('notes', text)}
+            placeholder="Doz, marka, ek notlar..."
+            multiline
+          />
+
+          <TouchableOpacity
+            style={[styles.editButton, { backgroundColor: '#400c66', marginTop: 8, alignSelf: 'flex-end' }]}
+            onPress={handleAddVaccine}
+          >
+            <Text style={styles.editButtonText}>Kaydet</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Aşı Listesi */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Aşı Takvimi</Text>
-          <Text style={styles.cardText}>Buraya pet_vaccinations tablosundan veri gelecek.</Text>
+
+          {vaccinesLoading ? (
+            <Text style={styles.cardText}>Aşılar yükleniyor...</Text>
+          ) : vaccines.length === 0 ? (
+            <Text style={styles.cardText}>
+              Henüz hiç aşı kaydı yok. Yukarıdan ekleyebilirsin 💉
+            </Text>
+          ) : (
+            vaccines.map(v => (
+              <View key={v.id} style={{ marginBottom: 8 }}>
+                <Text style={[styles.cardText, { fontWeight: '600' }]}>{v.name}</Text>
+                {v.given_at && (
+                  <Text style={styles.cardText}>
+                    Yapıldı: {v.given_at}
+                  </Text>
+                )}
+                {v.next_due_at && (
+                  <Text style={styles.cardText}>
+                    Sıradaki: {v.next_due_at}
+                  </Text>
+                )}
+                {v.notes && (
+                  <Text style={styles.cardText}>
+                    Not: {v.notes}
+                  </Text>
+                )}
+              </View>
+            ))
+          )}
         </View>
+
+        {/* Veteriner Ziyaretleri kartını şimdilik dummy bırakabiliriz */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Veteriner Ziyaretleri</Text>
-          <Text style={styles.cardText}>Buraya vet ziyaretleri için ayrı tablo bağlanır.</Text>
+          <Text style={styles.cardText}>Bunu da bir sonraki feature'da canlı yaparız 🐾</Text>
         </View>
       </View>
+
 
       {/* Beslenme Kartı */}
       <View style={styles.section}>
