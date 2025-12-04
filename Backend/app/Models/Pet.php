@@ -31,4 +31,10 @@ class Pet extends Model
     {
         return $this->hasMany(\App\Models\PetNote::class);
     }
+    
+    public function vaccinations()
+    {
+        return $this->hasMany(\App\Models\PetVaccination::class);
+    }
+
 }

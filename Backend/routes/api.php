@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\PetNoteController;
+use App\Http\Controllers\Api\PetVaccinationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,4 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('pets/{pet}/notes', [PetNoteController::class, 'index']);
     Route::post('pets/{pet}/notes', [PetNoteController::class, 'store']);
     Route::delete('pet-notes/{note}', [PetNoteController::class, 'destroy']);
+
+    Route::get('pets/{pet}/vaccinations', [PetVaccinationController::class, 'index']);
+    Route::post('pets/{pet}/vaccinations', [PetVaccinationController::class, 'store']);
+    Route::delete('pet-vaccinations/{vaccination}', [PetVaccinationController::class, 'destroy']);
+
 });
