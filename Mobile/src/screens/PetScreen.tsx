@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Calendar } from 'react-native-calendars';
 
 const API_BASE_URL = 'http://192.168.1.140:8000/api';
 
@@ -25,6 +26,8 @@ export default function PetScreen({ route }) {
   const [newNote, setNewNote] = useState('');
   const [vaccines, setVaccines] = useState([]);
   const [vaccinesLoading, setVaccinesLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+
 
   const [newVaccine, setNewVaccine] = useState({
     name: '',
@@ -246,6 +249,43 @@ export default function PetScreen({ route }) {
     );
   }
 
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  const markedDates = vaccines.reduce((acc, v) => {
+    if (v.given_at) {
+      const d = v.given_at; // "YYYY-MM-DD"
+      if (!acc[d]) acc[d] = { dots: [] };
+      acc[d].dots = acc[d].dots || [];
+      acc[d].dots.push({
+        key: `given-${v.id}`,
+        color: '#999999', // geçmiş = gri
+      });
+    }
+
+    // Gelecek aşı tarihi (next_due_at)
+    if (v.next_due_at) {
+      const d2 = v.next_due_at;
+      if (!acc[d2]) acc[d2] = { dots: [] };
+      acc[d2].dots = acc[d2].dots || [];
+      acc[d2].dots.push({
+        key: `next-${v.id}`,
+        color: '#400c66', // gelecek = mor
+      });
+    }
+
+    return acc;
+  }, {});
+
+  // Seçili günü vurgula
+  if (selectedDate) {
+    markedDates[selectedDate] = {
+      ...(markedDates[selectedDate] || {}),
+      selected: true,
+      selectedColor: '#f3e8ff',
+      selectedTextColor: '#400c66',
+    };
+  }
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -413,45 +453,33 @@ export default function PetScreen({ route }) {
             <Text style={styles.editButtonText}>Kaydet</Text>
           </TouchableOpacity>
         </View>
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Aşı Takvimi</Text>
 
-        {/* Aşı Listesi */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Aşı Takvimi</Text>
+        <Calendar
+          markedDates={markedDates}
+          markingType="multi-dot"
+          onDayPress={(day) => {
+            // day.dateString: "YYYY-MM-DD"
+            setSelectedDate(day.dateString);
+          }}
+          theme={{
+            arrowColor: '#400c66',
+            todayTextColor: '#400c66',
+          }}
+        />
 
-          {vaccinesLoading ? (
-            <Text style={styles.cardText}>Aşılar yükleniyor...</Text>
-          ) : vaccines.length === 0 ? (
-            <Text style={styles.cardText}>
-              Henüz hiç aşı kaydı yok. Yukarıdan ekleyebilirsin 💉
-            </Text>
-          ) : (
-            vaccines.map(v => (
-              <View key={v.id} style={{ marginBottom: 8 }}>
-                <Text style={[styles.cardText, { fontWeight: '600' }]}>{v.name}</Text>
-                {v.given_at && (
-                  <Text style={styles.cardText}>
-                    Yapıldı: {v.given_at}
-                  </Text>
-                )}
-                {v.next_due_at && (
-                  <Text style={styles.cardText}>
-                    Sıradaki: {v.next_due_at}
-                  </Text>
-                )}
-                {v.notes && (
-                  <Text style={styles.cardText}>
-                    Not: {v.notes}
-                  </Text>
-                )}
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* Veteriner Ziyaretleri kartını şimdilik dummy bırakabiliriz */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Veteriner Ziyaretleri</Text>
-          <Text style={styles.cardText}>Bunu da bir sonraki feature'da canlı yaparız 🐾</Text>
+        {/* Legend / Açıklama */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#999', marginRight: 6 }} />
+            <Text style={styles.cardText}>Geçmiş aşı</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#400c66', marginRight: 6 }} />
+            <Text style={styles.cardText}>Yaklaşan aşı</Text>
+          </View>
         </View>
       </View>
 
