@@ -28,6 +28,11 @@ export default function PetScreen({ route }) {
   const [vaccinesLoading, setVaccinesLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
+  const vaccinesForSelectedDate = selectedDate
+  ? vaccines.filter(v =>
+      v.given_at === selectedDate || v.next_due_at === selectedDate
+    )
+  : [];
 
   const [newVaccine, setNewVaccine] = useState({
     name: '',
@@ -469,7 +474,34 @@ export default function PetScreen({ route }) {
             todayTextColor: '#400c66',
           }}
         />
+        {/* Seçili güne ait aşılar */}
+        {selectedDate && (
+          <View style={[styles.card, { marginTop: 12 }]}>
+            <Text style={styles.cardTitle}>
+              {selectedDate} için aşılar
+            </Text>
 
+            {vaccinesForSelectedDate.length === 0 ? (
+              <Text style={styles.cardText}>
+                Bu gün için kayıtlı aşı yok.
+              </Text>
+            ) : (
+              vaccinesForSelectedDate.map((v) => (
+                <View key={v.id} style={{ marginBottom: 8 }}>
+                  <Text style={[styles.cardText, { fontWeight: '600' }]}>
+                    {v.name}
+                  </Text>
+                  {v.given_at === selectedDate && (
+                    <Text style={styles.cardText}>Yapıldı</Text>
+                  )}
+                  {v.next_due_at === selectedDate && (
+                    <Text style={styles.cardText}>Randevu</Text>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        )}
         {/* Legend / Açıklama */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
