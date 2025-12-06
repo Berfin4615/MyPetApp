@@ -28,6 +28,14 @@ export default function PetScreen({ route }) {
   const [vaccinesLoading, setVaccinesLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
+  const [todayFeed, setTodayFeed] = useState({
+    logs: [],
+    total_gram: 0,
+    count: 0,
+  });
+  const [feedLoading, setFeedLoading] = useState(false);
+
+
   const vaccinesForSelectedDate = selectedDate
   ? vaccines.filter(v =>
       v.given_at === selectedDate || v.next_due_at === selectedDate
@@ -132,6 +140,29 @@ export default function PetScreen({ route }) {
       }
     };
 
+    const fetchTodayFeed = async () => {
+      try {
+        setFeedLoading(true);
+        const token = await AsyncStorage.getItem('token');
+
+        const res = await axios.get(
+          `${API_BASE_URL}/pets/${petId}/feed-logs/today`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+            },
+          }
+        );
+
+        setTodayFeed(res.data);
+      } catch (err) {
+        console.log('Bugün mama özeti hatası:', err.response?.data || err.message);
+      } finally {
+        setFeedLoading(false);
+      }
+    };
+    fetchTodayFeed();
     fetchPet();
     fetchNotes();
     fetchVaccines();
@@ -399,16 +430,56 @@ export default function PetScreen({ route }) {
         </View>
       )}
 
-      {/* Bugünün Özeti (şimdilik dummy, sonra tablolardan çekeriz) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Bugünün Özeti</Text>
         <View style={styles.summaryCard}>
-          <Text>🥣 Mama: 2/3 öğün</Text>
-          <Text>💧 Su: 600 ml</Text>
-          <Text>🚶 Aktivite: 35 dk</Text>
-          <Text>😊 Ruh hali: Enerjik</Text>
+          {feedLoading ? (
+            <Text>🥣 Mama: yükleniyor...</Text>
+          ) : (
+            <Text>
+              🥣 Mama: {todayFeed.count} kayıt • {todayFeed.total_gram} g
+            </Text>
+          )}
+
+          {/* Su & Aktiviteyi sonra bağlarız */}
+          <Text>💧 Su: yakında</Text>
+          <Text>🚶 Aktivite: yakında</Text>
+          <Text>😊 Ruh hali: notlardan türetebiliriz 😌</Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        style={[styles.editButton, { backgroundColor: '#400c66', marginTop: 8 }]}
+        onPress={async () => {
+          try {
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.post(
+              `${API_BASE_URL}/pets/${petId}/feed-logs`,
+              { amount_gram: 80, meal_type: 'öğün' },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/json',
+                },
+              }
+            );
+
+            setTodayFeed(prev => ({
+              ...prev,
+              total_gram: prev.total_gram + (res.data.amount_gram || 0),
+              count: prev.count + 1,
+              logs: [res.data, ...(prev.logs || [])],
+            }));
+          } catch (err) {
+            console.log('Mama ekleme hızlı buton hatası:', err.response?.data || err.message);
+            Alert.alert('Hata', 'Mama kaydedilirken sorun oluştu.');
+          }
+        }}
+      >
+        <Text style={styles.editButtonText}>Bugün mama verdim (+80g)</Text>
+      </TouchableOpacity>
+
+
 
       {/* Sağlık & Aşılar */}
       <View style={styles.section}>
