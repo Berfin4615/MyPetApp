@@ -37,4 +37,8 @@ class Pet extends Model
         return $this->hasMany(\App\Models\PetVaccination::class);
     }
 
+    public function feedLogs()
+    {
+        return $this->hasMany(\App\Models\PetFeedLog::class);
+    }
 }
