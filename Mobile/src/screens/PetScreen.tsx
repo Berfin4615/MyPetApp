@@ -28,6 +28,14 @@ export default function PetScreen({ route }) {
   const [vaccinesLoading, setVaccinesLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
+  const [todayFeed, setTodayFeed] = useState({
+    logs: [],
+    total_gram: 0,
+    count: 0,
+  });
+  const [feedLoading, setFeedLoading] = useState(false);
+
+
   const vaccinesForSelectedDate = selectedDate
   ? vaccines.filter(v =>
       v.given_at === selectedDate || v.next_due_at === selectedDate
@@ -132,6 +140,29 @@ export default function PetScreen({ route }) {
       }
     };
 
+    const fetchTodayFeed = async () => {
+      try {
+        setFeedLoading(true);
+        const token = await AsyncStorage.getItem('token');
+
+        const res = await axios.get(
+          `${API_BASE_URL}/pets/${petId}/feed-logs/today`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+            },
+          }
+        );
+
+        setTodayFeed(res.data);
+      } catch (err) {
+        console.log('Bugün mama özeti hatası:', err.response?.data || err.message);
+      } finally {
+        setFeedLoading(false);
+      }
+    };
+    fetchTodayFeed();
     fetchPet();
     fetchNotes();
     fetchVaccines();
